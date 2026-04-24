@@ -878,25 +878,6 @@ func TestClientTunnelHTTPPostResponseAfterRTSPRequest(t *testing.T) {
 				scheme = schemeRTSPS
 			}
 
-			writePostResponse := func(nconn net.Conn, protoMinor int) {
-				h := http.Header{}
-				h.Set("Cache-Control", "no-cache")
-				h.Set("Connection", "close")
-				h.Set("Content-Type", "application/x-rtsp-tunnelled")
-				h.Set("Pragma", "no-cache")
-				res := http.Response{
-					StatusCode:    http.StatusOK,
-					ProtoMajor:    1,
-					ProtoMinor:    protoMinor,
-					Header:        h,
-					ContentLength: -1,
-				}
-				var resBuf bytes.Buffer
-				res.Write(&resBuf) //nolint:errcheck
-				_, err2 := nconn.Write(resBuf.Bytes())
-				require.NoError(t, err2)
-			}
-
 			serverDone := make(chan struct{})
 			defer func() { <-serverDone }()
 
@@ -984,7 +965,22 @@ func TestClientTunnelHTTPPostResponseAfterRTSPRequest(t *testing.T) {
 				require.NoError(t, err2)
 				require.Equal(t, base.Options, req.Method)
 
-				writePostResponse(nconn2, req1.ProtoMinor)
+				h = http.Header{}
+				h.Set("Cache-Control", "no-cache")
+				h.Set("Connection", "close")
+				h.Set("Content-Type", "application/x-rtsp-tunnelled")
+				h.Set("Pragma", "no-cache")
+				res = http.Response{
+					StatusCode:    http.StatusOK,
+					ProtoMajor:    1,
+					ProtoMinor:    req1.ProtoMinor,
+					Header:        h,
+					ContentLength: -1,
+				}
+				resBuf.Reset()
+				res.Write(&resBuf) //nolint:errcheck
+				_, err2 = nconn2.Write(resBuf.Bytes())
+				require.NoError(t, err2)
 
 				err2 = conn.WriteResponse(&base.Response{
 					StatusCode: base.StatusOK,
