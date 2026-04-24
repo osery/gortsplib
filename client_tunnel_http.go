@@ -204,6 +204,8 @@ func newClientTunnelHTTP(
 		return nil, err
 	}
 
+	// do not wait for writeChan response, since some servers don't send it.
+
 	ok = true
 	return c, nil
 }
